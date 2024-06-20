@@ -2,6 +2,7 @@ from pyspark import SparkContext, SparkConf
 from zipfile import ZipFile
 import os
 import sys
+import shutil
 
 # Crear un contexto de Spark
 conf = SparkConf().setAppName("problema3")
@@ -15,14 +16,23 @@ def read_rdd_from_dataset(dataset_path:str):
     folder_path = os.path.dirname(dataset_path)
     filename = os.path.basename(dataset_path).split('.')[0]
     
+    # 1. Eliminamos la carpeta data si existe
+    shutil.rmtree(os.path.join(folder_path, 'data', filename))
+    
     # descomprimiendo el archivo
     with ZipFile(dataset_path, 'r') as zip_ref:
         zip_ref.extractall(os.path.join(folder_path, 'data'))
     
+    
     # lectura de rdd
-    rdd = sc.textFile(os.path.join(folder_path, 'data/*.txt'))
-    rdd = rdd.filter(lambda line: not line.endswith('log.txt'))
-    rdd = rdd.map(lambda line: line.split("\t")).map(lambda fields: (fields[4], int(fields[6])))
+    rdd = sc.wholeTextFiles(os.path.join(folder_path,'data', filename))
+    rdd = rdd.filter(lambda x: "log.txt" not in x[0])
+    
+    rdd = rdd.map(lambda line: line[1].split("\t"))
+    
+    print(rdd.first())
+    
+    #.map(lambda fields: (fields[4], int(fields[6])))
     # retornando rdd
     
     
