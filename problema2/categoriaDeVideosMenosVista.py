@@ -30,8 +30,11 @@ def read_rdd_from_dataset(dataset_path:str):
     # lectura de los archivos, eliminando el archivo log.txt
     rdd = sc.wholeTextFiles(os.path.join(folder_path,'data', filename))
     rdd = rdd.filter(lambda x: "log.txt" not in x[0])
+
+    # Unir cada línea del RDD
+    rdd_lines = rdd.flatMap(lambda x: x[1].splitlines())
     
-    return rdd
+    return rdd_lines
     
     
 def writeRddAsText(rrd ,file_path:str):
@@ -64,7 +67,12 @@ def main():
     input_rdd = read_rdd_from_dataset(dataset_path)
     
     # 4. Lectura manteniendo columnas de interes: categoria y nro de visitas
-    select_rdd = input_rdd.map(lambda line: line[1].split("\t")).map(lambda fields: (fields[3], int(fields[5])))
+    select_rdd = (
+        input_rdd
+        .map(lambda line: line[1].split("\t"))
+        .filter(lambda fields: len(fields) > 5) # quito nulos
+        .map(lambda fields: (fields[3], int(fields[5])))
+    )
     
     
     # 5. Agrupo por categoria y sumo las visitas
