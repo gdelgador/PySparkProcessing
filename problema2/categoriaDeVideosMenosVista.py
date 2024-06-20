@@ -1,3 +1,6 @@
+"""
+spark-submit problema2/categoriaDeVideosMenosVista.py ./problema2/dataset/0301.zip ./problema2/output
+"""
 from pyspark import SparkContext, SparkConf
 from zipfile import ZipFile
 import os
@@ -24,58 +27,56 @@ def read_rdd_from_dataset(dataset_path:str):
         zip_ref.extractall(os.path.join(folder_path, 'data'))
     
     
-    # lectura de rdd
+    # lectura de los archivos, eliminando el archivo log.txt
     rdd = sc.wholeTextFiles(os.path.join(folder_path,'data', filename))
     rdd = rdd.filter(lambda x: "log.txt" not in x[0])
     
-    rdd = rdd.map(lambda line: line[1].split("\t"))
-    
-    print(rdd.first())
-    
-    #.map(lambda fields: (fields[4], int(fields[6])))
-    # retornando rdd
+    return rdd
     
     
-    pass
+def writeRddAsText(rrd ,file_path:str):
+    """Escribe un rdd en un archivo de texto según una ruta data"""
+    import shutil
+    
+    # Eliminamos directorio si existe
+    shutil.rmtree(file_path, ignore_errors=True)
+    
+    # Generamos nuevo rdd con separador
+    rdd_save = rrd.map(lambda x: f"{x[0]};{x[1]}")
 
+    # almacenamos data en path
+    rdd_save.saveAsTextFile(file_path)
+    pass
 
 
 def main():
     
-    # Validaciones internas
+    # 1. Validaciones internas
     if len(sys.argv) != 3:
         print("Usage: CategoriaDeVideosMenosVista.py <dataset_path> <output_path>")
         sys.exit(1)
 
-    # Recuperando parametros
+    # 2. Recuperando parametros
     dataset_path = sys.argv[1]
     output_path = sys.argv[2]
     
-    # lectura dataset
-    read_rdd_from_dataset(dataset_path)
+    # 3. lectura dataset
+    input_rdd = read_rdd_from_dataset(dataset_path)
+    
+    # 4. Lectura manteniendo columnas de interes: categoria y nro de visitas
+    select_rdd = input_rdd.map(lambda line: line[1].split("\t")).map(lambda fields: (fields[3], int(fields[5])))
+    
+    
+    # 5. Agrupo por categoria y sumo las visitas
+    grouped_rdd = select_rdd.reduceByKey(lambda a, b: a + b)
+    
+    # 6. Encontrar la categoria con menos visitas -> retorna una lista con la categoria y el nro de visitas
+    min_category = grouped_rdd.takeOrdered(1, key=lambda x: x[1])
+    
+    writeRddAsText(sc.parallelize(min_category) ,output_path)
     
     pass
-
 
 if __name__ == '__main__':
     main()
     pass
-
-
-# # Leer los datos
-# rdd = sc.textFile("/ruta/a/la/carpeta/de/entrada/*.txt")
-
-# # Dividir cada línea por tabulaciones y seleccionar solo las columnas de categoría y visitas
-# rdd = rdd.map(lambda line: line.split("\t")).map(lambda fields: (fields[4], int(fields[6])))
-
-# # Agrupar por categoría y sumar las visitas
-# rdd_grouped = rdd.reduceByKey(lambda a, b: a + b)
-
-# # Encontrar la categoría con menos visitas
-# min_category = rdd_grouped.reduce(lambda a, b: a if a[1] < b[1] else b)
-
-# # Guardar el resultado
-# sc.parallelize([min_category]).saveAsTextFile("/ruta/a/la/carpeta/de/salida")
-
-# # Detener el contexto de Spark
-# sc.stop()
