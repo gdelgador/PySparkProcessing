@@ -8,7 +8,7 @@ import sys
 import shutil
 
 # Crear un contexto de Spark
-conf = SparkConf().setAppName("problema3")
+conf = SparkConf().setAppName("problema2")
 sc = SparkContext(conf=conf)
 
 
