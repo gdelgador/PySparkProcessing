@@ -34,9 +34,7 @@ def main():
     # 1. lectura de datos
     input_rdd = sc.textFile(PATH_INPUT)
     
-    
     # 2. Procesamiento de datos
-    
     # 2.1 Convirtiendo datos en tupla
     tuple_rdd = (input_rdd
         .map(lambda line: line.split(";"))
@@ -51,8 +49,6 @@ def main():
     # 3. Escritura de datos
     writeRddAsText(reduce_rdd, PATH_OUT)
     pass
-
-
 
 if __name__ == '__main__':
     main()
